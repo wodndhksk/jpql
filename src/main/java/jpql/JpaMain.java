@@ -13,29 +13,31 @@ public class JpaMain {
         try {
 //            startJpql(em);
 //            projectionEx(em);
+//            pagingEx(em);
 
-            for(int i=0; i<100; i++){
-                Member member = new Member();
-                member.setUsername("member"+i);
-                member.setAge(i);
-                em.persist(member);
-            }
+            Team team = new Team();
+            team.setName("teamA");
+            em.persist(team);
+
+            Member member = new Member();
+            member.setUsername("member1");
+            member.setAge(10);
+            member.setTeam(team);
+            em.persist(member);
 
             em.flush();
             em.clear();
 
-            List<Member> result = em.createQuery("select m from Member m order by m.age desc ")
-                    .setFirstResult(1)
-                    .setMaxResults(10)
+            // 연관관계 있는 내부 조인 (join -> m.team)
+//            String query ="select m from Member m left join m.team t on t.name = 'teamA' ";
+            // 연관관계 없는 외부 조인 (join -> Team t)
+            String query ="select m from Member m left join Team t on t.name = 'teamA' ";
+
+            List<Member> result = em.createQuery(query, Member.class)
                     .getResultList();
 
-            System.out.println("result.age = " + result.size());
-            for(Member m : result){
-                System.out.println("member = " + m);
-            }
 
 
-            em.flush();
 
             tx.commit();
         } catch (Exception e) {
@@ -45,6 +47,28 @@ public class JpaMain {
         }
         em.close();
         emf.close();
+    }
+
+    private static void pagingEx(EntityManager em) {
+        for(int i=0; i<100; i++){
+            Member member = new Member();
+            member.setUsername("member"+i);
+            member.setAge(i);
+            em.persist(member);
+        }
+
+        em.flush();
+        em.clear();
+
+        List<Member> result = em.createQuery("select m from Member m order by m.age desc ")
+                .setFirstResult(1)
+                .setMaxResults(10)
+                .getResultList();
+
+        System.out.println("result.age = " + result.size());
+        for(Member m : result){
+            System.out.println("member = " + m);
+        }
     }
 
     private static void projectionEx(EntityManager em) {
