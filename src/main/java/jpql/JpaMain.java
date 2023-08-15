@@ -14,7 +14,7 @@ public class JpaMain {
 //            startJpql(em);
 //            projectionEx(em);
 //            pagingEx(em);
-
+//            joinEx(em);
             Team team = new Team();
             team.setName("teamA");
             em.persist(team);
@@ -23,20 +23,28 @@ public class JpaMain {
             member.setUsername("member1");
             member.setAge(10);
             member.setTeam(team);
+            member.setType(MemberType.ADMIN);
             em.persist(member);
 
             em.flush();
             em.clear();
 
-            // 연관관계 있는 내부 조인 (join -> m.team)
-//            String query ="select m from Member m left join m.team t on t.name = 'teamA' ";
-            // 연관관계 없는 외부 조인 (join -> Team t)
-            String query ="select m from Member m left join Team t on t.name = 'teamA' ";
+            // MemberType 을 쿼리에 직접 입력시
+//            String query ="select m.username, 'Hello', true from Member m " +
+//                    "where m.type = jpql.MemberType.ADMIN";
 
-            List<Member> result = em.createQuery(query, Member.class)
+            String query ="select m.username, 'Hello', true from Member m " +
+                    "where m.type = :userType";
+
+            List<Object[]> result = em.createQuery(query)
+                    .setParameter("userType", MemberType.ADMIN)
                     .getResultList();
 
-
+            for (Object[] objects : result){
+                System.out.println("objects = " + objects[0]);
+                System.out.println("objects = " + objects[1]);
+                System.out.println("objects = " + objects[2]);
+            }
 
 
             tx.commit();
@@ -47,6 +55,29 @@ public class JpaMain {
         }
         em.close();
         emf.close();
+    }
+
+    private static void joinEx(EntityManager em) {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Member member = new Member();
+        member.setUsername("member1");
+        member.setAge(10);
+        member.setTeam(team);
+        em.persist(member);
+
+        em.flush();
+        em.clear();
+
+        // 연관관계 있는 내부 조인 (join -> m.team)
+//            String query ="select m from Member m left join m.team t on t.name = 'teamA' ";
+        // 연관관계 없는 외부 조인 (join -> Team t)
+        String query ="select m from Member m left join Team t on t.name = 'teamA' ";
+
+        List<Member> result = em.createQuery(query, Member.class)
+                .getResultList();
     }
 
     private static void pagingEx(EntityManager em) {
