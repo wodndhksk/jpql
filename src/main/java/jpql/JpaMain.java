@@ -15,12 +15,15 @@ public class JpaMain {
 //            projectionEx(em);
 //            pagingEx(em);
 //            joinEx(em);
+//            typeEx(em);
+//            caseEx(em);
+
             Team team = new Team();
             team.setName("teamA");
             em.persist(team);
 
             Member member = new Member();
-            member.setUsername("member1");
+            member.setUsername("관리자");
             member.setAge(10);
             member.setTeam(team);
             member.setType(MemberType.ADMIN);
@@ -29,21 +32,17 @@ public class JpaMain {
             em.flush();
             em.clear();
 
-            // MemberType 을 쿼리에 직접 입력시
-//            String query ="select m.username, 'Hello', true from Member m " +
-//                    "where m.type = jpql.MemberType.ADMIN";
+            // coalesce : 하나씩 조회해서 null 이 아니면 반환 (null 이면 '이름없는 회원' 반환)
+            String query1 ="select coalesce(m.username, '이름없는 회원') from Member m ";
 
-            String query ="select m.username, 'Hello', true from Member m " +
-                    "where m.type = :userType";
+            // m.username 이 '관리자' 이면 null 반환
+            String query2 ="select nullif(m.username, '관리자') from Member m ";
 
-            List<Object[]> result = em.createQuery(query)
-                    .setParameter("userType", MemberType.ADMIN)
+            List<String> result = em.createQuery(query2, String.class)
                     .getResultList();
 
-            for (Object[] objects : result){
-                System.out.println("objects = " + objects[0]);
-                System.out.println("objects = " + objects[1]);
-                System.out.println("objects = " + objects[2]);
+            for(String s : result){
+                System.out.println("s = " + s);
             }
 
 
@@ -55,8 +54,80 @@ public class JpaMain {
         }
         em.close();
         emf.close();
+    } // ================================================
+
+    private static void caseEx(EntityManager em) {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Member member = new Member();
+        member.setUsername("member1");
+        member.setAge(10);
+        member.setTeam(team);
+        member.setType(MemberType.ADMIN);
+        em.persist(member);
+
+        em.flush();
+        em.clear();
+
+        String query ="select " +
+                "case when m.age <= 10 then '학생요금' " +
+                "when m.age <= 60 then '경로요금' " +
+                "else '일반요금' " +
+                "end " +
+                "from Member m";
+
+        List<String> result = em.createQuery(query, String.class)
+                .getResultList();
+
+        for(String s : result){
+            System.out.println("s = " + s);
+        }
     }
 
+
+    /**
+     * JPQL 타입 표현과 기타식
+     * @param em
+     */
+    private static void typeEx(EntityManager em) {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Member member = new Member();
+        member.setUsername("member1");
+        member.setAge(10);
+        member.setTeam(team);
+        member.setType(MemberType.ADMIN);
+        em.persist(member);
+
+        em.flush();
+        em.clear();
+
+        // MemberType 을 쿼리에 직접 입력시
+//            String query ="select m.username, 'Hello', true from Member m " +
+//                    "where m.type = jpql.MemberType.ADMIN";
+
+        String query ="select m.username, 'Hello', true from Member m " +
+                "where m.type = :userType";
+
+        List<Object[]> result = em.createQuery(query)
+                .setParameter("userType", MemberType.ADMIN)
+                .getResultList();
+
+        for (Object[] objects : result){
+            System.out.println("objects = " + objects[0]);
+            System.out.println("objects = " + objects[1]);
+            System.out.println("objects = " + objects[2]);
+        }
+    }
+
+    /**
+     * 조인
+     * @param em
+     */
     private static void joinEx(EntityManager em) {
         Team team = new Team();
         team.setName("teamA");
@@ -80,6 +151,10 @@ public class JpaMain {
                 .getResultList();
     }
 
+    /**
+     * 페이징
+     * @param em
+     */
     private static void pagingEx(EntityManager em) {
         for(int i=0; i<100; i++){
             Member member = new Member();
@@ -102,6 +177,10 @@ public class JpaMain {
         }
     }
 
+    /**
+     * 프로젝션
+     * @param em
+     */
     private static void projectionEx(EntityManager em) {
         Member member = new Member();
         member.setUsername("member1");
@@ -143,6 +222,10 @@ public class JpaMain {
         System.out.println("memberDto.getAge = " + memberDto.getAge());
     }
 
+    /**
+     * 기본 문법과 쿼리
+     * @param em
+     */
     private static void startJpql(EntityManager em) {
         Member member = new Member();
         member.setUsername("member1");
