@@ -1,6 +1,7 @@
 package jpql;
 
 import javax.persistence.*;
+import javax.persistence.criteria.From;
 import java.util.List;
 
 public class JpaMain {
@@ -17,33 +18,37 @@ public class JpaMain {
 //            joinEx(em);
 //            typeEx(em);
 //            caseEx(em);
+//            coalesceAndNullIfEx(em);
 
-            Team team = new Team();
-            team.setName("teamA");
-            em.persist(team);
+            Member member1 = new Member();
+            member1.setUsername("관리자");
+            em.persist(member1);
 
-            Member member = new Member();
-            member.setUsername("관리자");
-            member.setAge(10);
-            member.setTeam(team);
-            member.setType(MemberType.ADMIN);
-            em.persist(member);
+            Member member2 = new Member();
+            member2.setUsername("관리자");
+            em.persist(member2);
 
             em.flush();
             em.clear();
 
-            // coalesce : 하나씩 조회해서 null 이 아니면 반환 (null 이면 '이름없는 회원' 반환)
-            String query1 ="select coalesce(m.username, '이름없는 회원') from Member m ";
+//            String query = "select 'a' || 'b' From Member m";
+//            String query = "select substring(m.username, 2, 3) From Member m";
+//            String query = "select locate('de', 'abcdefg') From Member m"; // Integer 타입임
+//            String query = "select size(t.member) From Team t";
+//            String query = "select function('group_concat', m.username) From Member m"; //등록한 dialect 함수 사용
+            String query = "select group_concat(m.username) From Member m"; // group_concat 은 hibernate 에서 지원하여 그냥 사용해도 됨
 
-            // m.username 이 '관리자' 이면 null 반환
-            String query2 ="select nullif(m.username, '관리자') from Member m ";
 
-            List<String> result = em.createQuery(query2, String.class)
-                    .getResultList();
+            List<String> result = em.createQuery(query, String.class).getResultList();
+//            List<Integer> result = em.createQuery(query, Integer.class).getResultList();
 
-            for(String s : result){
+            for (String s : result) {
                 System.out.println("s = " + s);
             }
+
+//            for (Integer s : result) {
+//                System.out.println("s = " + s);
+//            }
 
 
             tx.commit();
@@ -55,6 +60,35 @@ public class JpaMain {
         em.close();
         emf.close();
     } // ================================================
+
+    private static void coalesceAndNullIfEx(EntityManager em) {
+        Team team = new Team();
+        team.setName("teamA");
+        em.persist(team);
+
+        Member member = new Member();
+        member.setUsername("관리자");
+        member.setAge(10);
+        member.setTeam(team);
+        member.setType(MemberType.ADMIN);
+        em.persist(member);
+
+        em.flush();
+        em.clear();
+
+        // coalesce : 하나씩 조회해서 null 이 아니면 반환 (null 이면 '이름없는 회원' 반환)
+        String query1 = "select coalesce(m.username, '이름없는 회원') from Member m ";
+
+        // m.username 이 '관리자' 이면 null 반환
+        String query2 = "select nullif(m.username, '관리자') from Member m ";
+
+        List<String> result = em.createQuery(query2, String.class)
+                .getResultList();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
 
     private static void caseEx(EntityManager em) {
         Team team = new Team();
@@ -71,7 +105,7 @@ public class JpaMain {
         em.flush();
         em.clear();
 
-        String query ="select " +
+        String query = "select " +
                 "case when m.age <= 10 then '학생요금' " +
                 "when m.age <= 60 then '경로요금' " +
                 "else '일반요금' " +
@@ -81,7 +115,7 @@ public class JpaMain {
         List<String> result = em.createQuery(query, String.class)
                 .getResultList();
 
-        for(String s : result){
+        for (String s : result) {
             System.out.println("s = " + s);
         }
     }
@@ -89,6 +123,7 @@ public class JpaMain {
 
     /**
      * JPQL 타입 표현과 기타식
+     *
      * @param em
      */
     private static void typeEx(EntityManager em) {
@@ -110,14 +145,14 @@ public class JpaMain {
 //            String query ="select m.username, 'Hello', true from Member m " +
 //                    "where m.type = jpql.MemberType.ADMIN";
 
-        String query ="select m.username, 'Hello', true from Member m " +
+        String query = "select m.username, 'Hello', true from Member m " +
                 "where m.type = :userType";
 
         List<Object[]> result = em.createQuery(query)
                 .setParameter("userType", MemberType.ADMIN)
                 .getResultList();
 
-        for (Object[] objects : result){
+        for (Object[] objects : result) {
             System.out.println("objects = " + objects[0]);
             System.out.println("objects = " + objects[1]);
             System.out.println("objects = " + objects[2]);
@@ -126,6 +161,7 @@ public class JpaMain {
 
     /**
      * 조인
+     *
      * @param em
      */
     private static void joinEx(EntityManager em) {
@@ -145,7 +181,7 @@ public class JpaMain {
         // 연관관계 있는 내부 조인 (join -> m.team)
 //            String query ="select m from Member m left join m.team t on t.name = 'teamA' ";
         // 연관관계 없는 외부 조인 (join -> Team t)
-        String query ="select m from Member m left join Team t on t.name = 'teamA' ";
+        String query = "select m from Member m left join Team t on t.name = 'teamA' ";
 
         List<Member> result = em.createQuery(query, Member.class)
                 .getResultList();
@@ -153,12 +189,13 @@ public class JpaMain {
 
     /**
      * 페이징
+     *
      * @param em
      */
     private static void pagingEx(EntityManager em) {
-        for(int i=0; i<100; i++){
+        for (int i = 0; i < 100; i++) {
             Member member = new Member();
-            member.setUsername("member"+i);
+            member.setUsername("member" + i);
             member.setAge(i);
             em.persist(member);
         }
@@ -172,13 +209,14 @@ public class JpaMain {
                 .getResultList();
 
         System.out.println("result.age = " + result.size());
-        for(Member m : result){
+        for (Member m : result) {
             System.out.println("member = " + m);
         }
     }
 
     /**
      * 프로젝션
+     *
      * @param em
      */
     private static void projectionEx(EntityManager em) {
@@ -203,11 +241,11 @@ public class JpaMain {
 
         // Embedded 타입 사용
         em.createQuery("select o.address from Order o ", Address.class)
-                        .getResultList();
+                .getResultList();
 
         //select 값이 여러개일때
         em.createQuery("select distinct m.username, m.age from Member m")
-                        .getResultList();
+                .getResultList();
         List<Object[]> result3 = em.createQuery("select m.username, m.age from Member m")
                 .getResultList();
         Object[] objects = result3.get(0);
@@ -224,6 +262,7 @@ public class JpaMain {
 
     /**
      * 기본 문법과 쿼리
+     *
      * @param em
      */
     private static void startJpql(EntityManager em) {
