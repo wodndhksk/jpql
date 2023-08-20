@@ -9,6 +9,10 @@ import javax.persistence.*;
 @Getter
 @Setter
 @Entity
+@NamedQuery(
+        name = "Member.findByUsername",
+        query = "select m from Member m where m.username = :username"
+)
 @ToString(exclude = "team") //team 필드 제외
 public class Member {
 
