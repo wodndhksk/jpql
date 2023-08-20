@@ -20,6 +20,7 @@ public class JpaMain {
 //            caseEx(em);
 //            coalesceAndNullIfEx(em);
 //            jpqlFunctionEx(em);
+//            fetchAndDistinctEx(em);
 
             Team teamA = new Team();
             teamA.setName("팀A");
@@ -47,19 +48,11 @@ public class JpaMain {
             em.flush();
             em.clear();
 
-            // fetch 조인 : 한방 쿼리 (성능 향상 기대)
-            // 그러나 일대다 fetch 조인에서는 데이터가 뻥튀기 되는 현상이 발생(중복값 존재) 따라서 distinct 를 사용하면 쿼리 뿐만 아니라
-            // 애플리케이션단에서도 중복 제거
-            String query = "select t from Team t join fetch t.member"; //지연로딩을 사용해도 fetch 조인이 우선!
+            String query = "select t from Team t"; //지연로딩을 사용해도 fetch 조인이 우선!
             List<Team> result = em.createQuery(query, Team.class)
+                    .setFirstResult(0)
+                    .setMaxResults(2)
                     .getResultList();
-
-//            for (Member member : result) {
-//                System.out.println("member = " + member.getUsername() + ", team = " + member.getTeam().getName());
-//                // 회원1, 팀A(SQL)
-//                // 회원2, 팀A(1차캐시)
-//                // 회원3, 팀B(SQL)
-//            }
 
             System.out.println("result = " + result.size());
 
@@ -71,11 +64,6 @@ public class JpaMain {
             }
 
 
-
-
-
-
-
             tx.commit();
         } catch (Exception e) {
             tx.rollback();
@@ -85,6 +73,57 @@ public class JpaMain {
         em.close();
         emf.close();
     } // ================================================
+
+    private static void fetchAndDistinctEx(EntityManager em) {
+        Team teamA = new Team();
+        teamA.setName("팀A");
+        em.persist(teamA);
+
+        Team teamB = new Team();
+        teamB.setName("팀B");
+        em.persist(teamB);
+
+        Member member1 = new Member();
+        member1.setUsername("회원1");
+        member1.setTeam(teamA);
+        em.persist(member1);
+
+        Member member2 = new Member();
+        member2.setUsername("회원2");
+        member2.setTeam(teamA);
+        em.persist(member2);
+
+        Member member3 = new Member();
+        member3.setUsername("회원3");
+        member3.setTeam(teamB);
+        em.persist(member3);
+
+        em.flush();
+        em.clear();
+
+        // fetch 조인 : 한방 쿼리 (성능 향상 기대)
+        // 그러나 일대다 fetch 조인에서는 데이터가 뻥튀기 되는 현상이 발생(중복값 존재) 따라서 distinct 를 사용하면 쿼리 뿐만 아니라
+        // 애플리케이션단에서도 중복 제거
+        String query = "select distinct t from Team t join fetch t.member"; //지연로딩을 사용해도 fetch 조인이 우선!
+        List<Team> result = em.createQuery(query, Team.class)
+                .getResultList();
+
+//            for (Member member : result) {
+//                System.out.println("member = " + member.getUsername() + ", team = " + member.getTeam().getName());
+//                // 회원1, 팀A(SQL)
+//                // 회원2, 팀A(1차캐시)
+//                // 회원3, 팀B(SQL)
+//            }
+
+        System.out.println("result = " + result.size());
+
+        for (Team team : result) {
+            System.out.println("team = " + team.getName() + "|members = " + team.getMember().size());
+            for (Member member : team.getMember()){
+                System.out.println("-> member = " + member);
+            }
+        }
+    }
 
     private static void jpqlFunctionEx(EntityManager em) {
         Member member1 = new Member();
